@@ -118,9 +118,30 @@ class Game:
                         if self.player1.health <= 0:
                             self.all_sprites.remove(self.player1)
         #Blackhole-Platform collision
-        print(pygame.sprite.groupcollide(self.black_holes, self.platforms, False, False))
-
-
+        if len(self.black_holes) > 0:
+            for holes in self.black_holes:
+                collision = pygame.sprite.spritecollide(holes, self.platforms, False)
+                if collision:
+                    holes.rect.bottom = collision[0].rect.top - 80
+                    holes.gravity = 0
+                    holes.in_air = False
+                if holes.in_air == False:
+                    if holes.player_one:
+                        collision2 = pygame.sprite.collide_rect(holes, self.player2)
+                        if collision2:
+                            self.player2.stunned = True
+                            holes.suck(self.player2)
+                    if not holes.player_one:
+                        collision1 = pygame.sprite.collide_rect(holes, self.player1)
+                        if collision1:
+                            self.player1.stunned = True
+                            holes.suck(self.player1)
+                if not holes.active:
+                    self.black_holes.remove(holes)
+                    self.all_sprites.remove(holes)
+                
+        #Blackhole-player collision
+        
 
 
 

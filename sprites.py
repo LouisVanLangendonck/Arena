@@ -201,12 +201,13 @@ class Spritesheet:
 class Black_hole(pygame.sprite.Sprite):
     def __init__(self,type, x,y,direction):
         pygame.sprite.Sprite.__init__(self)
-        self.active = False
+        self.active = True
         self.in_air = False
         if type == 1:
             self.player_one = True
         else:
             self.player_one = False
+        self.player_suck = False
         self.x = x
         self.y = y
         self.direction = direction
@@ -217,6 +218,7 @@ class Black_hole(pygame.sprite.Sprite):
         self.rect.topleft = (x,y)
 
         self.proj_frame = 0
+        self.ground_frame = 0
             
 
     def update(self):
@@ -231,6 +233,22 @@ class Black_hole(pygame.sprite.Sprite):
                     self.proj_frame = 0
         # if self.rect.topleft[0] > WIDTH:
             # self.active = False
+        else:
+            self.ground_frame += 1
+            self.image = blackhole_ground_frame
+            if self.ground_frame == FPS*3:
+                self.active = False
+        
+    def suck(self, player):
+        print(player.pos.x, player.pos.y)
+        print(self.rect.x, self.rect.y)
+
+        
+
+        
+
+
+
             
 
 
