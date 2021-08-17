@@ -42,6 +42,7 @@ class Player(pygame.sprite.Sprite):
         self.frame = 0
         self.punch_frame = 0
         self.stun_frame = 0
+        self.jump_count = 0
         
         self.image = idle_frames_r[0]
         self.rect = self.image.get_rect()
@@ -107,9 +108,11 @@ class Player(pygame.sprite.Sprite):
                 if self.vel.x > 0:
                     self.direc == 'r'
                     self.image = block_frame_r
+                    self.agility = 0.25
                 elif self.vel.x < 0:
                     self.direc == 'l'
-                    self.image = block_frame_l    
+                    self.image = block_frame_l  
+                    self.agility = 0.25  
                 
             elif self.punching == True:
                 punching_speed = 3
@@ -207,25 +210,29 @@ class Black_hole(pygame.sprite.Sprite):
             self.player_one = True
         else:
             self.player_one = False
-        self.player_suck = False
         self.x = x
         self.y = y
         self.direction = direction
         self.vel = 8
         self.gravity = -20
-        self.image = blackhole_air_frame_r[0]
+        self.image = blackhole_air_frame_r[0] 
         self.rect = self.image.get_rect()
-        self.rect.topleft = (x,y)
+        self.rect.midbottom = (self.x,self.y)
+        self.living_time = FPS*5
 
         self.proj_frame = 0
         self.ground_frame = 0
-            
+        self.spin_frame = 0
 
     def update(self):
-        shot_anim_speed = 5
+        self.rect.midbottom = (self.x,self.y)
+        shot_anim_speed = 4
         if self.in_air:
-            self.rect.x += self.vel
-            self.rect.y += self.gravity
+            if self.direction == 'r':
+                self.x += self.vel
+            else:
+                self.x -= self.vel
+            self.y += self.gravity
             self.gravity += 1
             self.proj_frame += 1
             self.image = blackhole_air_frame_r[self.proj_frame // ((ANIMATION_VEL+shot_anim_speed)+1)]
@@ -234,14 +241,26 @@ class Black_hole(pygame.sprite.Sprite):
         # if self.rect.topleft[0] > WIDTH:
             # self.active = False
         else:
+            spinning_speed = 5
+            self.spin_frame += 1
             self.ground_frame += 1
-            self.image = blackhole_ground_frame
-            if self.ground_frame == FPS*3:
+            self.image = blackhole_ground_frame[self.spin_frame // ((spinning_speed)+1)]
+            if self.spin_frame == ((len(blackhole_ground_frame)) * (spinning_speed)):
+                    self.spin_frame = 0
+            self.rect = self.image.get_rect()
+            self.rect.midbottom = (self.x,self.y)
+            if self.ground_frame == self.living_time:
                 self.active = False
         
-    def suck(self, player):
-        print(player.pos.x, player.pos.y)
-        print(self.rect.x, self.rect.y)
+    def suck(self, target):
+        target.acc = vec(0,0)
+        target.vel.y = 0
+        x_diff = target.pos.x - self.x
+        if x_diff > 0:
+            target.pos.x -= (x_diff/(self.living_time/2))
+        else:
+            target.pos.x -= (x_diff/(self.living_time/2))
+        target.vel.y = 0
 
         
 

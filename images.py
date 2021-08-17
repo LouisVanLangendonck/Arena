@@ -22,7 +22,7 @@ block_frame_l = pygame.transform.flip(block_frame_r, True, False)
 
 blackhole_air_frame_r = [pygame.image.load('graphics/players/louis/black_hole/bhproj01.png').convert_alpha(), pygame.image.load('graphics/players/louis/black_hole/bhproj02.png').convert_alpha(), pygame.image.load('graphics/players/louis/black_hole/bhproj03.png').convert_alpha(), pygame.image.load('graphics/players/louis/black_hole/bhproj04.png').convert_alpha()]
 blackhole_air_frame_l = [pygame.transform.flip(images, True, False) for images in blackhole_air_frame_r]
-blackhole_ground_frame = pygame.image.load('graphics/players/louis/black_hole/bh01.png').convert_alpha()
+blackhole_ground_frame = [pygame.image.load('graphics/players/louis/black_hole/bh01.png').convert_alpha(), pygame.image.load('graphics/players/louis/black_hole/bh02.png').convert_alpha(), pygame.image.load('graphics/players/louis/black_hole/bh03.png').convert_alpha(), pygame.image.load('graphics/players/louis/black_hole/bh04.png').convert_alpha()]
 
 stun_frame_r = pygame.image.load('graphics/players/louis/stunned.png').convert_alpha()
 stun_frame_l = pygame.transform.flip(stun_frame_r, True, False)

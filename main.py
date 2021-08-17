@@ -23,9 +23,9 @@ class Game:
         self.all_sprites = pygame.sprite.Group()
         self.platforms = pygame.sprite.Group()
         self.black_holes = pygame.sprite.Group()
-        self.player1 = Player(1,1,20)
-        self.player2 = Player(2,1,20)
-        p1 = Platform(0,(HEIGHT-150), WIDTH, 200)
+        self.player1 = Player(1,1,15)
+        self.player2 = Player(2,1,15)
+        p1 = Platform(-100,(HEIGHT-150), WIDTH + 200, 200)
         p2 = Platform(100, 150, 300, 40)
         self.all_sprites.add(p1)
         self.all_sprites.add(p2)
@@ -54,10 +54,12 @@ class Game:
             self.player1.pos.y = plat_hit0[0].rect.top + 1
             self.player1.vel.y = 0
             self.player1.in_air = False
+            self.player1.jump_count = 0
         if plat_hit1:
             self.player2.pos.y = plat_hit1[0].rect.top + 1
             self.player2.vel.y = 0
             self.player2.in_air = False
+            self.player2.jump_count = 0
         #Player-Player collision
         if pygame.sprite.collide_rect(self.player1, self.player2):
             if self.player1.image == punch_frames_l[3] or self.player1.image == punch_frames_r[3]:
@@ -122,10 +124,12 @@ class Game:
             for holes in self.black_holes:
                 collision = pygame.sprite.spritecollide(holes, self.platforms, False)
                 if collision:
-                    holes.rect.bottom = collision[0].rect.top - 80
+                    holes.vel = 0
                     holes.gravity = 0
+                    holes.y = collision[0].rect.top
                     holes.in_air = False
                 if holes.in_air == False:
+                    #Blackhole-player collision
                     if holes.player_one:
                         collision2 = pygame.sprite.collide_rect(holes, self.player2)
                         if collision2:
@@ -154,15 +158,15 @@ class Game:
                 self.running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    if self.player1.in_air:
-                        pass
-                    else:
-                        self.player1.jump()
+                    if not self.player1.stunned:
+                        if self.player1.jump_count != 2:
+                            self.player1.jump()
+                            self.player1.jump_count += 1
                 if event.key == pygame.K_z:
-                    if self.player2.in_air:
-                        pass
-                    else:
-                        self.player2.jump()
+                    if not self.player2.stunned:
+                        if self.player2.jump_count != 2:
+                            self.player2.jump()
+                            self.player2.jump_count += 1
                 if event.key == pygame.K_KP0:
                     if not self.player1.blocking:
                         if self.player1.punching:
@@ -183,7 +187,19 @@ class Game:
                         self.player2.blocking = True
                 if event.key == pygame.K_h:
                     if (not self.player2.punching and not self.player2.blocking and not self.player2.stunned):
-                        black_hole = Black_hole(2,self.player2.rect.center[0], self.player2.rect.center[1]-20,'r')
+                        if self.player2.direc == 'r':
+                            black_hole = Black_hole(2,self.player2.rect.center[0], self.player2.rect.center[1]-20,'r')
+                        else:
+                            black_hole = Black_hole(2,self.player2.rect.center[0], self.player2.rect.center[1]-20,'l')
+                        black_hole.in_air = True
+                        self.black_holes.add(black_hole)
+                        self.all_sprites.add(black_hole)
+                if event.key == pygame.K_KP3:
+                    if (not self.player1.punching and not self.player1.blocking and not self.player1.stunned):
+                        if self.player1.direc == 'r':
+                            black_hole = Black_hole(1,self.player1.rect.center[0], self.player1.rect.center[1]-20,'r')
+                        else:
+                            black_hole = Black_hole(1,self.player1.rect.center[0], self.player1.rect.center[1]-20,'l')
                         black_hole.in_air = True
                         self.black_holes.add(black_hole)
                         self.all_sprites.add(black_hole)
@@ -194,8 +210,10 @@ class Game:
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_KP1:
                     self.player1.blocking = False
+                    self.player1.agility = self.player1.agility_original
                 if event.key == pygame.K_g:
                     self.player2.blocking = False
+                    self.player2.agility = self.player2.agility_original
                 if event.key == pygame.K_s:
                     self.player2.ducked = False
                     self.player2.agility = self.player2.agility_original
