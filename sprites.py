@@ -3,16 +3,11 @@ from sys import exit
 from pygame.locals import *
 import pygame.constants
 from settings import *
+import random as rd
 from pygame.math import Vector2 as vec
 from images import *
-
-def draw_health_bar(surf, pos, size, borderC, backC, healthC, progress):
-    pygame.draw.rect(surf, backC, (*pos, *size))
-    pygame.draw.rect(surf, borderC, (*pos, *size), 1)
-    innerPos  = (pos[0]+1, pos[1]+1)
-    innerSize = ((size[0]-2) * progress, size[1]-2)
-    rect = (round(innerPos[0]), round(innerPos[1]), round(innerSize[0]), round(innerSize[1]))
-    pygame.draw.rect(surf, healthC, rect)  
+from helper_functions import *
+from music import *
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, type, agility, jumping_power):
@@ -37,12 +32,15 @@ class Player(pygame.sprite.Sprite):
         self.in_air = False
         self.punching = False
         self.ducked = False
+        self.bh_poss = True
         self.direc = 'r'
 
         self.frame = 0
         self.punch_frame = 0
         self.stun_frame = 0
         self.jump_count = 0
+        self.bh_regen_count = 0
+        self.regen_time = FPS*10
         
         self.image = idle_frames_r[0]
         self.rect = self.image.get_rect()
@@ -89,6 +87,14 @@ class Player(pygame.sprite.Sprite):
         self.vel += self.acc
         self.pos += self.vel + 0.5*self.acc
         self.rect.midbottom = self.pos
+
+        #REGENERATION OF BLACK HOLE
+        if not self.bh_poss:
+            self.bh_regen_count += 1
+            if self.bh_regen_count == self.regen_time:
+                self.bh_poss = True
+                self.bh_regen_count = 0
+
 
         if not self.stunned:
             if self.ducked:
@@ -180,14 +186,33 @@ class Player(pygame.sprite.Sprite):
             health_rect = pygame.Rect(0, 0, self.size[0], 7)
             health_rect.center = (self.pos.x, self.pos.y - (self.size[1] + 30))
             max_health = 100
-            draw_health_bar(surf, health_rect.topleft, health_rect.size, 
+            draw_bar(surf, health_rect.topleft, health_rect.size, 
                 (0, 0, 0), (255, 0, 0), (0, 255, 0), self.health/max_health)
+    
+    def draw_bh_powerup(self, surf):
+        if self.bh_poss:
+            bh_rect = pygame.Rect(0, 0, 200, 30)
+            if self.player_one:
+                bh_rect.topleft = (30, 30)
+            else:
+                bh_rect.topright = (WIDTH-30, 30)
+            draw_bar(surf, bh_rect.topleft, bh_rect.size, 
+                (0, 0, 0), (0, 0, 0), (131, 29, 163), 1)
+        else:
+            bh_rect = pygame.Rect(0, 0, 200, 30)
+            if self.player_one:
+                bh_rect.topleft = (30, 30)
+            else:
+                bh_rect.topright = (WIDTH-30, 30)
+            draw_bar(surf, bh_rect.topleft, bh_rect.size, 
+               (0, 0, 0), (0, 0, 0), (131, 29, 163), self.bh_regen_count/self.regen_time)
         
 class Platform(pygame.sprite.Sprite):
     def __init__(self,x,y,w,h):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((w,h))
-        self.image.fill('Brown')
+        self.image.fill('White')
+        #self.image = pygame.transform.scale(platform_test, (w,h))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -218,13 +243,17 @@ class Black_hole(pygame.sprite.Sprite):
         self.image = blackhole_air_frame_r[0] 
         self.rect = self.image.get_rect()
         self.rect.midbottom = (self.x,self.y)
-        self.living_time = FPS*5
+        self.living_time = FPS*3
 
         self.proj_frame = 0
         self.ground_frame = 0
         self.spin_frame = 0
 
     def update(self):
+        if self.x > WIDTH:
+            self.x = 0
+        elif self.x < 0:
+            self.x = WIDTH
         self.rect.midbottom = (self.x,self.y)
         shot_anim_speed = 4
         if self.in_air:
@@ -262,29 +291,54 @@ class Black_hole(pygame.sprite.Sprite):
             target.pos.x -= (x_diff/(self.living_time/2))
         target.vel.y = 0
 
-        
+class Non_interacting_item(pygame.sprite.Sprite):
+    def __init__(self,x,y,vel,image):
+        pygame.sprite.Sprite.__init__(self)
+        self.x = x
+        self.y = y
+        self.vel = vel
+        self.image = image
+        self.rect = image.get_rect()
+        self.rect.topright = (self.x, self.y)        
 
-        
+    def update(self):
+        self.x += self.vel
+        self.rect.topright = (self.x, self.y)
 
+class Sun(Non_interacting_item):
+    def __init__(self,vel,image):
+        self.x = 0
+        self.y = 30
+        super().__init__(self.x,self.y,vel,image)
 
-
+    def update(self):
+        self.x += self.vel
+        self.rect.topright = (self.x, self.y)
+        if self.rect.left > WIDTH:
+            self.x = 0
             
 
+class Cloud(Non_interacting_item):
+    def __init__(self, x):
+        self.vel = rd.random()*1.5
+        self.seed = rd.randint(0,len(clouds)-1)
+        self.y = rd.randint(-50, 350)
+        self.image = clouds[self.seed]
+        super().__init__(x,self.y,self.vel, self.image)
+
+    def update(self):
+        self.x += self.vel
+        self.rect.topright = (self.x, self.y)
+        if self.rect.left > WIDTH:
+            self.vel = rd.random()*1.5
+            self.seed = rd.randint(0,len(clouds)-1)
+            self.image = clouds[self.seed]
+            self.x = 0
+            self.y = rd.randint(-50, 350)
 
 
 
 
-# class Healthbar(pygame.sprite.Sprite):
-#     def __init__(self, type):
-#         super().__init__()
-#         self.health = 100
-#         if type == 1:
-#             self.player_one = True
-#         else:
-#             self.player_one = False
-        
-#         if self.player_one:
-#             pygame.draw.rect()
  
 
 

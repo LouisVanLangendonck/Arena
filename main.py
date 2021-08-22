@@ -5,28 +5,44 @@ import pygame.constants
 from settings import *
 from sprites import *
 from images import *
+from helper_functions import *
+from music import *
 from pygame.math import Vector2 as vec
+
+NEXT = pygame.USEREVENT + 1
 
 class Game:
     def __init__(self):    
         # initialization
         pygame.init()
-        pygame.mixer.init()
+        pygame.mixer.pre_init(44100, 16, 2, 4096)
+        self.black_hole_sound = pygame.mixer.Sound('music/Trans_FX.wav')
+        self.playlist = ['music/arenaSong_placeholder_intro.mp3', 'music/arenaSong_placeholder_loop.mp3']
+        self.tracks_number = len(self.playlist)
+        self.current_track = 0
+        pygame.mixer.music.load(self.playlist[self.current_track])
+        pygame.mixer.music.set_endevent(NEXT) 
         pygame.display.set_caption('Arena')
         self.screen = pygame.display.set_mode((WIDTH,HEIGHT))
         self.clock = pygame.time.Clock()
         self.running = True
-        print('test')
 
     def new(self):
         # start new game
+        pygame.mixer.music.play()
         self.all_sprites = pygame.sprite.Group()
+        self.sun = Sun(0.5, sun)
+        self.cloud1 = Cloud(700)
+        self.cloud2 = Cloud(200)
+        self.all_sprites.add(self.sun)
+        self.all_sprites.add(self.cloud1)
+        self.all_sprites.add(self.cloud2)
         self.platforms = pygame.sprite.Group()
         self.black_holes = pygame.sprite.Group()
         self.player1 = Player(1,1,15)
         self.player2 = Player(2,1,15)
-        p1 = Platform(-100,(HEIGHT-150), WIDTH + 200, 200)
-        p2 = Platform(100, 150, 300, 40)
+        p1 = Platform(-100,(HEIGHT-102), WIDTH + 200, 200)
+        p2 = Platform(100, 400, 300, 40)
         self.all_sprites.add(p1)
         self.all_sprites.add(p2)
         self.platforms.add(p1)
@@ -48,15 +64,44 @@ class Game:
         #game loop - update
         self.all_sprites.update()
         #Player-Platform Collision
-        plat_hit0 = pygame.sprite.spritecollide(self.player1, self.platforms, False)
-        plat_hit1 = pygame.sprite.spritecollide(self.player2, self.platforms, False)        
-        if plat_hit0:
-            self.player1.pos.y = plat_hit0[0].rect.top + 1
-            self.player1.vel.y = 0
-            self.player1.in_air = False
-            self.player1.jump_count = 0
+        plat_hit1 = pygame.sprite.spritecollide(self.player1, self.platforms, False)
+        plat_hit2 = pygame.sprite.spritecollide(self.player2, self.platforms, False)
         if plat_hit1:
-            self.player2.pos.y = plat_hit1[0].rect.top + 1
+            for platforms in plat_hit1: 
+                if self.player1.vel.y > 0:
+                    # print(self.player1.rect.right)
+                    # print(platforms.rect.left)
+                    if self.player1.rect.right + 2 <= platforms.rect.left:
+                        self.player1.x = platforms.rect.left - (self.player1.size[0]/2.0)
+                        self.player1.vel.x = 0
+                        self.player1.vel.y = 0
+                        print('test')
+                    elif self.player1.rect.left - 2 >= platforms.rect.right:
+                        self.player1.x = platforms.rect.right + (self.player1.size[0]/2.0)
+                        self.player1.vel.x = 0
+                        self.player1.vel.y = 0
+                        print('test')
+                    else:
+                        self.player1.pos.y =  platforms.rect.top + 1
+                        self.player1.in_air = False
+                        self.player1.jump_count = 0
+                        self.player1.vel.y = 0
+                elif self.player1.vel.y < 0:
+
+                    if self.player1.rect.right+2 <= platforms.rect.left:
+                        self.player1.x = platforms.rect.left - (self.player1.size[0]/2.0)
+                        self.player1.vel.x = 0
+                        self.player1.vel.y = 0
+                    elif self.player1.rect.left-2 >= platforms.rect.right:
+                        self.player1.x = platforms.rect.right + (self.player1.size[0]/2.0)
+                        self.player1.vel.x = 0
+                        self.player1.vel.y = 0
+                    else:
+                        self.player1.pos.y = platforms.rect.bottom + self.player1.size[1]            
+                        self.player1.vel.y = 0
+
+        if plat_hit2:
+            self.player2.pos.y = plat_hit2[0].rect.top + 1
             self.player2.vel.y = 0
             self.player2.in_air = False
             self.player2.jump_count = 0
@@ -129,6 +174,7 @@ class Game:
                     holes.y = collision[0].rect.top
                     holes.in_air = False
                 if holes.in_air == False:
+                    self.black_hole_sound.play()
                     #Blackhole-player collision
                     if holes.player_one:
                         collision2 = pygame.sprite.collide_rect(holes, self.player2)
@@ -156,6 +202,11 @@ class Game:
                 if self.playing:
                     self.playing = False
                 self.running = False
+            if event.type == NEXT:
+                self.current_track = (self.current_track + 1) % self.tracks_number
+                print("Play:", self.playlist[self.current_track])
+                pygame.mixer.music.load(self.playlist[self.current_track])
+                pygame.mixer.music.play()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     if not self.player1.stunned:
@@ -167,7 +218,7 @@ class Game:
                         if self.player2.jump_count != 2:
                             self.player2.jump()
                             self.player2.jump_count += 1
-                if event.key == pygame.K_KP0:
+                if event.key == pygame.K_k:
                     if not self.player1.blocking:
                         if self.player1.punching:
                             pass
@@ -179,36 +230,42 @@ class Game:
                             pass
                         else:
                             self.player2.punching = True
-                if event.key == pygame.K_KP1:
+                if event.key == pygame.K_l:
                     if not self.player1.punching:
-                        self.player1.blocking = True
+                        if not self.player1.stunned:
+                            self.player1.blocking = True
                 if event.key == pygame.K_g:
                     if not self.player2.punching:
-                        self.player2.blocking = True
+                        if not self.player2.stunned:
+                            self.player2.blocking = True
                 if event.key == pygame.K_h:
-                    if (not self.player2.punching and not self.player2.blocking and not self.player2.stunned):
-                        if self.player2.direc == 'r':
-                            black_hole = Black_hole(2,self.player2.rect.center[0], self.player2.rect.center[1]-20,'r')
-                        else:
-                            black_hole = Black_hole(2,self.player2.rect.center[0], self.player2.rect.center[1]-20,'l')
-                        black_hole.in_air = True
-                        self.black_holes.add(black_hole)
-                        self.all_sprites.add(black_hole)
-                if event.key == pygame.K_KP3:
-                    if (not self.player1.punching and not self.player1.blocking and not self.player1.stunned):
-                        if self.player1.direc == 'r':
-                            black_hole = Black_hole(1,self.player1.rect.center[0], self.player1.rect.center[1]-20,'r')
-                        else:
-                            black_hole = Black_hole(1,self.player1.rect.center[0], self.player1.rect.center[1]-20,'l')
-                        black_hole.in_air = True
-                        self.black_holes.add(black_hole)
-                        self.all_sprites.add(black_hole)
+                    if self.player2.bh_poss:
+                        if (not self.player2.punching and not self.player2.blocking and not self.player2.stunned):
+                            if self.player2.direc == 'r':
+                                black_hole = Black_hole(2,self.player2.rect.center[0], self.player2.rect.center[1]-20,'r')
+                            else:
+                                black_hole = Black_hole(2,self.player2.rect.center[0], self.player2.rect.center[1]-20,'l')
+                            black_hole.in_air = True
+                            self.black_holes.add(black_hole)
+                            self.all_sprites.add(black_hole)
+                            self.player2.bh_poss = False
+                if event.key == pygame.K_m:
+                    if self.player1.bh_poss:
+                        if (not self.player1.punching and not self.player1.blocking and not self.player1.stunned):
+                            if self.player1.direc == 'r':
+                                black_hole = Black_hole(1,self.player1.rect.center[0], self.player1.rect.center[1]-20,'r')
+                            else:
+                                black_hole = Black_hole(1,self.player1.rect.center[0], self.player1.rect.center[1]-20,'l')
+                            black_hole.in_air = True
+                            self.black_holes.add(black_hole)
+                            self.all_sprites.add(black_hole)
+                            self.player1.bh_poss = False
                 if event.key == pygame.K_s:
                     self.player2.ducked = True
                 if event.key == pygame.K_DOWN:
                     self.player1.ducked = True
             if event.type == pygame.KEYUP:
-                if event.key == pygame.K_KP1:
+                if event.key == pygame.K_l:
                     self.player1.blocking = False
                     self.player1.agility = self.player1.agility_original
                 if event.key == pygame.K_g:
@@ -226,6 +283,8 @@ class Game:
         self.screen.blit(background, (0,0))
         self.player1.draw_health(self.screen)
         self.player2.draw_health(self.screen)
+        self.player1.draw_bh_powerup(self.screen)
+        self.player2.draw_bh_powerup(self.screen)
         self.all_sprites.draw(self.screen)
         pygame.display.flip()
 
