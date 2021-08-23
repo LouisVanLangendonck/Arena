@@ -47,6 +47,8 @@ class Game:
         self.all_sprites.add(p2)
         self.platforms.add(p1)
         self.platforms.add(p2)
+        self.player1.platform_list = self.platforms
+        self.player2.platform_list = self.platforms
         self.all_sprites.add(self.player1)
         self.all_sprites.add(self.player2)
         self.run()
@@ -68,43 +70,38 @@ class Game:
         plat_hit2 = pygame.sprite.spritecollide(self.player2, self.platforms, False)
         if plat_hit1:
             for platforms in plat_hit1: 
-                if self.player1.vel.y > 0:
-                    # print(self.player1.rect.right)
-                    # print(platforms.rect.left)
-                    if self.player1.rect.right + 2 <= platforms.rect.left:
-                        self.player1.x = platforms.rect.left - (self.player1.size[0]/2.0)
-                        self.player1.vel.x = 0
-                        self.player1.vel.y = 0
-                        print('test')
-                    elif self.player1.rect.left - 2 >= platforms.rect.right:
-                        self.player1.x = platforms.rect.right + (self.player1.size[0]/2.0)
-                        self.player1.vel.x = 0
-                        self.player1.vel.y = 0
-                        print('test')
-                    else:
-                        self.player1.pos.y =  platforms.rect.top + 1
-                        self.player1.in_air = False
-                        self.player1.jump_count = 0
-                        self.player1.vel.y = 0
+                if self.player1.rect.midbottom[0] < platforms.rect.left:
+                    self.player1.pos.x = platforms.rect.left - (self.player1.size[0]/2.0)
+                    self.player1.vel.x = 0
+                elif self.player1.rect.midbottom[0] > platforms.rect.right:
+                    self.player1.pos.x = platforms.rect.right + (self.player1.size[0]/2.0)
+                    self.player1.vel.x = 0
+                elif self.player1.vel.y > 0:
+                    self.player1.pos.y =  platforms.rect.top + 1
+                    self.player1.in_air = False
+                    self.player1.jump_count = 0
+                    self.player1.vel.y = 0
                 elif self.player1.vel.y < 0:
-
-                    if self.player1.rect.right+2 <= platforms.rect.left:
-                        self.player1.x = platforms.rect.left - (self.player1.size[0]/2.0)
-                        self.player1.vel.x = 0
-                        self.player1.vel.y = 0
-                    elif self.player1.rect.left-2 >= platforms.rect.right:
-                        self.player1.x = platforms.rect.right + (self.player1.size[0]/2.0)
-                        self.player1.vel.x = 0
-                        self.player1.vel.y = 0
-                    else:
-                        self.player1.pos.y = platforms.rect.bottom + self.player1.size[1]            
-                        self.player1.vel.y = 0
+                    self.player1.pos.y = platforms.rect.bottom + self.player1.size[1]            
+                    self.player1.vel.y = 0
 
         if plat_hit2:
-            self.player2.pos.y = plat_hit2[0].rect.top + 1
-            self.player2.vel.y = 0
-            self.player2.in_air = False
-            self.player2.jump_count = 0
+            for platforms in plat_hit2: 
+                if self.player2.rect.midbottom[0] < platforms.rect.left:
+                    self.player2.pos.x = platforms.rect.left - (self.player2.size[0]/2.0)
+                    self.player2.vel.x = 0
+                elif self.player2.rect.midbottom[0] > platforms.rect.right:
+                    self.player2.pos.x = platforms.rect.right + (self.player2.size[0]/2.0)
+                    self.player2.vel.x = 0
+                elif self.player2.vel.y > 0:
+                    self.player2.pos.y =  platforms.rect.top + 1
+                    self.player2.in_air = False
+                    self.player2.jump_count = 0
+                    self.player2.vel.y = 0
+                elif self.player2.vel.y < 0:
+                    self.player2.pos.y = platforms.rect.bottom + self.player2.size[1]            
+                    self.player2.vel.y = 0
+
         #Player-Player collision
         if pygame.sprite.collide_rect(self.player1, self.player2):
             if self.player1.image == punch_frames_l[3] or self.player1.image == punch_frames_r[3]:

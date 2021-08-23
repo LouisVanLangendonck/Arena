@@ -46,7 +46,7 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.size = self.image.get_size()
 
-                
+        self.platform_list = pygame.sprite.Group()     
 
     def jump(self):
         self.vel.y = -self.jumping_power
@@ -206,7 +206,7 @@ class Player(pygame.sprite.Sprite):
                 bh_rect.topright = (WIDTH-30, 30)
             draw_bar(surf, bh_rect.topleft, bh_rect.size, 
                (0, 0, 0), (0, 0, 0), (131, 29, 163), self.bh_regen_count/self.regen_time)
-        
+
 class Platform(pygame.sprite.Sprite):
     def __init__(self,x,y,w,h):
         pygame.sprite.Sprite.__init__(self)
@@ -320,7 +320,7 @@ class Sun(Non_interacting_item):
 
 class Cloud(Non_interacting_item):
     def __init__(self, x):
-        self.vel = rd.random()*1.5
+        self.vel = rd.random()
         self.seed = rd.randint(0,len(clouds)-1)
         self.y = rd.randint(-50, 350)
         self.image = clouds[self.seed]
@@ -330,7 +330,7 @@ class Cloud(Non_interacting_item):
         self.x += self.vel
         self.rect.topright = (self.x, self.y)
         if self.rect.left > WIDTH:
-            self.vel = rd.random()*1.5
+            self.vel = rd.random()
             self.seed = rd.randint(0,len(clouds)-1)
             self.image = clouds[self.seed]
             self.x = 0
